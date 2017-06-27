@@ -14,9 +14,9 @@ DataSet
 | load(pObj)            | 스키마 + 데이터 로드               | Content Cell  |
 | loadRow(pObj)         | 데이터 로드                        | Content Cell  |
 | loadRowSchema(pObj)   | 스키마 로드                        | Content Cell  |
-| get()                 | [ds] 내부 스카마 + 데이터 얻기      | 리턴 :  String or Object  |
-| getRow()              | [ds] 내부 데이터 얻기              | Content Cell  |
-| getRowSchema()        | [ds] 내부 스카마 얻기              | Content Cell  |
+| get() : Object<JSON>          | [ds] 내부 스카마 + 데이터 얻기      | 리턴 :  String or Object  |
+| getRow() : Object<JSON>       | [ds] 내부 데이터 얻기              | Content Cell  |
+| getRowSchema() : Object<JSON> | [ds] 내부 스카마 얻기              | Content Cell  |
 
 
 | 트랜젝션 메소드        |  설명         |  비고          | 
