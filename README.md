@@ -30,7 +30,7 @@
     - external : LCommon.js
 
     - src : 원본 소스
-        + DataSystem.js : 
+        + DataSystem.js : 데이터 시스템 관련
         
         + TransQueue.js : 트랜젝션 관련
         
@@ -77,19 +77,19 @@
 
 ## API
 
-    - DataSet 
+    - DataSet : public
 
     - DataTableCollection 
 
-    - DataTable
+    - DataTable : public
 
     - DataColumnCollection
 
-    - DataColumn
+    - DataColumn : public
 
     - DataRowCollection
 
-    - DataRow
+    - DataRow : public
 
     - TransQueue
 

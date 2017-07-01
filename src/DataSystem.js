@@ -1,6 +1,19 @@
 (function(global) {
     'use strict';    
 
+    // ## import & 네이밍 표준 설치
+    var TransQueue;
+    var LArray;
+    if (typeof module !== 'undefined' && module.exports) {
+        TransQueue = require('./TransQueue.js');
+        require('../external/LCommon.js');
+        LArray = L.class.LArray;
+    } else if(global.TransQueue){
+        TransQueue = global.TransQueue;
+    } else {
+        console.log('ERR: TransQueue 함수 로딩 실패');
+    }
+
     /**
      * DataSet
      * 데이터 셋
@@ -98,6 +111,7 @@
         // ########################################
         
         // 리셋 : 데이터 + 스키마
+        // TODO :
         DataSet.prototype.reset = function() {
         };
 
@@ -107,34 +121,58 @@
         };
 
         // 복사 : 스키마 + 데이터
+        // TODO:
         DataSet.prototype.copy = function() {
         };        
 
         // 복제 : 스키마
+        // TODO:
         DataSet.prototype.clone = function() {
         };
         
         // 외부 => 내부 ds : 데이터 + 스키마
-        DataSet.prototype.load = function() {
+        DataSet.prototype.load = function(pDataSet) {
+            var ds          = null;
+            var dataTable   = null;
+
+            try {
+                
+                if (!pDataSet || !pDataSet.tables) {
+                    throw new Error('pDataSet  tables 객체 없음 :');
+                }
+
+                for (var i = 0; i < pDataSet.tables.length; i++) {
+                    dataTable = new DataTable();
+                    dataTable.read(pDataSet.tables[i]);
+                    this.tables.add(dataTable);
+                }
+            } catch (e) { 
+                console.log('DataSet load 오류 :' + e);
+            }
         };
 
         // 외부 => 내부 ds : 데이터
+        // TODO:
         DataSet.prototype.loadRow = function() {
         };
         
         // 외부 => 내부 ds : 스키마
+        // TODO :
         DataSet.prototype.loadSchema = function() {
         };
 
         // 내부ds => 외부 : 데이터 + 스키마
+        // TODO :
         DataSet.prototype.get = function() {
         };
         
         // 내부ds => 외부 : 데이터
+        // TODO:
         DataSet.prototype.getRow = function() {
         };
 
         // 내부ds => 외부 : 데이터 + 스키마
+        // TODO:
         DataSet.prototype.getSchema = function() {
         };
 
@@ -232,21 +270,21 @@
         // DataTable : 데이터테이블 객체
         DataTableCollection.prototype.add = function(pObject) {
 
-            var dataTable = null;
+            var table = null;
 
             if (typeof pObject === "string") {      
-                dataTable = new DataTable(pObject);
+                table = new DataTable(pObject);
             } else if (pObject instanceof DataTable) {
-                dataTable = pObject;
+                table = pObject;
             } else {
                 return null;
             }
 
             // this 위치 수정
-            this.pushAttr(dataTable, dataTable.tableName);
+            this.pushAttr(table, table.tableName);
             // this.pushAttr.call(this, dataTable, dataTable.tableName);
 
-            return  dataTable;
+            return  table;
         };
 
         // 데이터테이블 초기화
@@ -570,17 +608,21 @@
 
         // ### 메소드 ###
 
-        DataColumnCollection.prototype.add = function(pDataColumn) {
+        DataColumnCollection.prototype.add = function(pObject) {
             
-            if (pDataColumn instanceof DataColumn) {
+            var column = null;
 
-                // 부모의 this 를 참조하는 방식 변경
-                this.pushAttr(pDataColumn, pDataColumn.columnName);
-                // this.pushAttr.call(this, pDataColumn, pDataColumn.columnName);
-                return true;
+            if (typeof pObject === "string") { 
+                column = new DataColumn(pObject, "string");
+            } else if (pObject instanceof DataColumn) {
+                column = pObject;
             } else {
-                return false;
+                return null;
             }
+
+            this.pushAttr(column, column.columnName);
+
+            return column;
         };
         
         // 데이터컬럼
@@ -813,8 +855,8 @@
         this._SCOPE = "DataRow";
 
         if (pDataTable instanceof DataTable) {
-            for (var i = 0; i < _dataTable.columns.length; i++) {
-                columnName = _dataTable.columns[i].columnName;      // !! 버그 발견함 this 이슈
+            for (var i = 0; i < this._dataTable.columns.length; i++) {
+                columnName = this._dataTable.columns[i].columnName;      // !! 버그 발견함 this 이슈
                 this.pushAttr(null, columnName);
                 // this.pushAttr.call(this, null, columnName);
             }
