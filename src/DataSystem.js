@@ -1,15 +1,24 @@
-(function(global) {
+(function(G) {
     'use strict';    
+    var _G;     // 내부 전역
 
     // ## import & 네이밍 표준 설치
     var TransQueue;
     var LArray;
     if (typeof module !== 'undefined' && module.exports) {
-        TransQueue = require('./TransQueue.js');
+
+        if (global.TransQueue) {
+            TransQueue = global.TransQueue;
+        } else {
+            TransQueue = require('./TransQueue.js');
+        }
+
         require('../external/LCommon.js');
-        LArray = L.class.LArray;
-    } else if(global.TransQueue){
-        TransQueue = global.TransQueue;
+        LArray = global.L.class.LArray;
+    
+    } else if(G.TransQueue){
+        TransQueue = G.TransQueue;
+        LArray = G.L.class.LArray;
     } else {
         console.log('ERR: TransQueue 함수 로딩 실패');
     }
@@ -894,12 +903,14 @@
         module.exports.DataTable    = DataTable;
         module.exports.DataColumn   = DataColumn;
         module.exports.DataRow      = DataRow;
+        _G = global;    // node 
     } else {
-        // 전역 배포
-        global.DataSet              = global.DataSet || DataSet;
-        global.DataTable            = global.DataTable || DataTable;
-        global.DataColumn           = global.DataColumn || DataColumn;
-        global.DataRow              = global.DataRow || DataRow;
+        _G = G;         // web
     }
+    // 전역 배포
+    _G.DataSet              = DataSet;
+    _G.DataTable            = DataTable;
+    _G.DataColumn           = DataColumn;
+    _G.DataRow              = DataRow;
 
 }(this));

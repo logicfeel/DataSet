@@ -1,17 +1,12 @@
 /**
- * @version 1.0.0 
+ * @version 1.0.1 
  */
 
 //####################################################
 // Merge file : common.js
-
-// 전역 모듈 생성
-if (typeof L === "undefined") L = {}; 
-
-(function(global) {
+(function(G) {
     'use strict';
-
-    L = L || {};
+    var _G;     // 내부 전역
 
     // 배열 차원 검사 (최대 제한값 10 설정됨)
     // 첫번째 배열만 검사 (배열의 넢이가 같은 겨우만)
@@ -49,23 +44,27 @@ if (typeof L === "undefined") L = {};
     if (typeof module !== 'undefined' && module.exports) {
         module.exports.getArrayLevel    = getArrayLevel;
         module.exports.isArray          = isArray;
+        _G = global;    // node 
+    } else {
+        _G = G;         // web
     }
 
     // 전역 배포 (모듈형식)
-    L.arr                   = L.arr || {};
-    L.arr.getArrayLevel     = getArrayLevel;
-    L.arr.isArray           = isArray;
+    _G.L                    = _G.L || {};
+    _G.L.arr                = _G.L.arr || {};
+    _G.L.arr.getArrayLevel  = getArrayLevel;
+    _G.L.arr.isArray        = isArray;
+
 
 }(this));
+
 
 //####################################################
 // Merge file : LArray.js
 
-// 전역 모듈 생성
-if (typeof L === "undefined") L = {}; 
-
-(function(global) {
+(function(G) {
     'use strict';
+    var _G;     // 내부 전역
 
     /**
      * !! prototype 노출형 부모 (부모.call(this);  <= 불필요
@@ -175,25 +174,32 @@ if (typeof L === "undefined") L = {};
         return null;
     };
 
-    // 배포 (RequireJS 용도)
+    /**
+     * 배포
+     * node 등록(주입)  AMD (RequireJS) 방식만 사용함
+     * ! 추후 CommonJS (define) 방식 추가 필요함
+     */
     if (typeof module !== 'undefined' && module.exports) {
         module.exports  = LArray;
+        _G = global;    // node 
+    } else {
+        _G = G;         // web
     }
 
     // 전역 배포 (모듈형식)
-    L.class                 = L.class || {};
-    L.class.LArray          = LArray;
+    _G.L                    = _G.L || {};
+    _G.L.class              = _G.L.class || {};
+    _G.L.class.LArray       = LArray;
 
 }(this));
+
 
 //####################################################
 // Merge file : Observer.js
 
-// 전역 모듈 생성
-if (typeof L === "undefined") L = {}; 
-
-(function(global) {
+(function(G) {
     'use strict';
+    var _G;     // 내부 전역
 
     // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     // 옵서버 패턴 
@@ -250,13 +256,24 @@ if (typeof L === "undefined") L = {};
         };
     }());
 
-    // 배포 (RequireJS 용도)
+
+    /**
+     * 배포
+     * node 등록(주입)  AMD (RequireJS) 방식만 사용함
+     * ! 추후 CommonJS (define) 방식 추가 필요함
+     */
     if (typeof module !== 'undefined' && module.exports) {
         module.exports  = Observer;
+        _G = global;    // node 
+    } else {
+        _G = G;         // web
     }
 
     // 전역 배포 (모듈형식)
-    L.class                 = L.class || {};
-    L.class.Observer        = Observer;    
+    _G.L                    = _G.L || {};
+    _G.L.class              = _G.L.class || {};
+    _G.L.class.Observer     = Observer;
 
 }(this));
+
+

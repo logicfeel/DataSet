@@ -1,6 +1,7 @@
-(function(global) {
+(function(G) {
     'use strict';
-    
+    var _G;     // 내부 전역
+
     /**
      * @class TransQueue
      * @version 1.0.0
@@ -324,9 +325,12 @@
     // 배포 (RequireJS 용도)
     if (typeof module !== 'undefined' && module.exports) {
         module.exports      = TransQueue;
+        _G = global;    // node 
     } else {
-        // 전역 배포
-        global.TransQueue   = global.TransQueue || TransQueue;
+        _G = G;         // web
     }
+
+    // 전역 배포
+    _G.TransQueue   = TransQueue;
 
 }(this));
