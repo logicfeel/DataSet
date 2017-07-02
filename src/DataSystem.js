@@ -1,3 +1,6 @@
+/**
+ * @version 0.1.0 
+ */
 (function(G) {
     'use strict';    
     var _G;     // 내부 전역
@@ -5,6 +8,8 @@
     // ## import & 네이밍 표준 설치
     var TransQueue;
     var LArray;
+    var Observer;
+
     if (typeof module !== 'undefined' && module.exports) {
 
         if (global.TransQueue) {
@@ -15,10 +20,12 @@
 
         require('../external/LCommon.js');
         LArray = global.L.class.LArray;
+        Observer = global.L.class.Observer;
     
     } else if(G.TransQueue){
         TransQueue = G.TransQueue;
         LArray = G.L.class.LArray;
+        Observer = G.L.class.Observer;
     } else {
         console.log('ERR: TransQueue 함수 로딩 실패');
     }
@@ -49,6 +56,11 @@
         this.tables = new DataTableCollection(this);
         // this.dt = this.tables;      // Ref?
         this.dataSetName = pDataSetName;
+        this._event         = new Observer(this, this);
+        this.eventList      = ["commit", "rollback", "change"];
+        this.onCommit       = null;     // 커밋완료 후 + 성공시 : callback(ds)
+        this.onRollback     = null;     // 커밋완료 후 + 성공시 : callback(ds)
+        this.onChange       = null;     // 변경이후 : callback(ds)
     }
     (function() {
 
@@ -85,7 +97,7 @@
                 }
 
                 for (var i = 0; i < pDataSet.tables.length; i++) {
-                    dataTable = new DataTable();
+                    dataTable = new DataTable(null, this);
                     dataTable.read(pDataSet.tables[i]);
                     this.tables.add(dataTable);
                 }
@@ -151,7 +163,7 @@
                 }
 
                 for (var i = 0; i < pDataSet.tables.length; i++) {
-                    dataTable = new DataTable();
+                    dataTable = new DataTable(null, this);
                     dataTable.read(pDataSet.tables[i]);
                     this.tables.add(dataTable);
                 }
@@ -196,6 +208,13 @@
                 
                 if (!isSuccess) return false;
             }
+
+            // 이벤트 발생
+            if (typeof this.onCommit === "function" ) {
+                this.onCommit.call(this);
+            }
+            this._event.publish("commit");
+
             return isSuccess;
         };
         
@@ -209,6 +228,13 @@
                 
                 if (!isSuccess) return false;
             }
+
+            // 이벤트 발생
+            if (typeof this.onRollback === "function" ) {
+                this.onRollback.call(this);
+            }
+            this._event.publish("rollback");
+
             return isSuccess;
         };
 
@@ -249,6 +275,24 @@
             return false;
         };
 
+        // 이벤트 등록
+        DataSet.prototype.onEvent = function(pType, pFn) {
+            if (this.eventList.indexOf(pType) > -1) {
+                this._event.subscribe(pFn, pType);
+            } else {
+                throw new Error('pType 에러 발생 pType:' + pType);
+            }
+        }
+
+        // 이벤트 해제
+        DataSet.prototype.offEvent = function(pType, pFn) {
+            if (this.eventList.indexOf(pType) > -1) {
+                this._event.unsubscribe(pFn, pType);
+            } else {
+                throw new Error('pType 에러 발생 pType:' + pType);
+            }
+        }        
+
     }());
 
     /**
@@ -259,7 +303,7 @@
     function DataTableCollection(pDataSet) {
         LArray.call(this);      // ### prototype 상속 ###
 
-        var _dataSet = pDataSet;
+        this._dataSet = pDataSet;
 
         // this._items = [];
         this._SCOPE = "DataTableCollection";
@@ -282,7 +326,7 @@
             var table = null;
 
             if (typeof pObject === "string") {      
-                table = new DataTable(pObject);
+                table = new DataTable(pObject, this._dataSet);
             } else if (pObject instanceof DataTable) {
                 table = pObject;
             } else {
@@ -325,12 +369,12 @@
         // 객체의 index 값 조회
         DataTableCollection.prototype.indexOf = function(pObject) {
             
-            for (var i = 0; i < th_dataSet.tables.length; i++) {
+            for (var i = 0; i < this._dataSet.tables.length; i++) {
                 
                 if (typeof pObject ==="string") {
-                    if (_dataSet.tables[i].tableName === pObject) return i;
+                    if (this._dataSet.tables[i].tableName === pObject) return i;
                 } else if (pObject) {
-                    if (_dataSet.tables[i] === pObject)  return i;
+                    if (this._dataSet.tables[i] === pObject)  return i;
                 }
             }
             return -1; 
@@ -362,12 +406,43 @@
      * 데이터테이블
      * @param {String} pTableName 테이블명
      */
-    function DataTable(pTableName) {
+    function DataTable(pTableName, pDataSet) {
+        
+        var _this           = this;
 
-        this.columns    = new DataColumnCollection(this);
-        this.rows       = new DataRowCollection(this);
-        this.tableName  = pTableName;
+        this._dataSet       = pDataSet;
+        this.columns        = new DataColumnCollection(this);
+        this.rows           = new DataRowCollection(this);
+        this.tableName      = pTableName;
+        this._event         = new Observer(this, this);
+        this.eventList      = ["change", "insert", "update", "delete"];
+        this.onChange       = null;     // 처리후 : callback(데이터테이블)
+        this.onInsert       = null;     // 처리후 : callback(데이터테이블)
+        this.onUpdate       = null;     // 처리후 : callback(데이터테이블)
+        this.onDelete       = null;     // 처리후 : callback(데이터테이블)
+        
+        // 이벤트 관련
+        if (this._dataSet instanceof DataSet) {
+            this._event.subscribe(function() {
+                // 이벤트 발생
+                if (typeof _this._dataSet.onChange === "function" ) {
+                    pDataSet.onChange.call(this);
+                }
+                _this._dataSet._event.publish("change");
+            }, "change");
+        }
 
+        this._event.subscribe(function() {
+            _this._event.publish("change"); // 이벤트 발생
+        }, "insert");
+
+        this._event.subscribe(function() {
+            _this._event.publish("change"); // 이벤트 발생
+        }, "update");
+
+        this._event.subscribe(function() {
+            _this._event.publish("change"); // 이벤트 발생
+        }, "delete");
     }
     (function() {
 
@@ -453,7 +528,7 @@
                     throw new Error('rows와 columns 없음 오류 :');
                 }
 
-                dataTable = new DataTable(dtTableName);
+                dataTable = new DataTable(dtTableName, this._dataSet);
                 
                 // *************************
                 // 로우 데이터 가져오기
@@ -503,7 +578,7 @@
                     throw new Error('colum 배열 아님 오류 :');
                 }
 
-                dataTable = new DataTable(dtTableName);
+                dataTable = new DataTable(dtTableName, this._dataSet);
                 
                 // *************************
                 // 컬럼 스키마 가져오기
@@ -775,6 +850,12 @@
             return this._items.splice(pIdx, 1);     // _index 삭제 
         }
 
+        // REVIW: 테스트전
+        function _updateAt(pDataRow, pIdx) {
+            _removeAt(pIdx);
+            _insertAt(pDataRow, pIdx);
+        }
+
         DataRowCollection.prototype.add = function(pDataRow) {
 
             // TYPE1: TransQeueue 사용 안할 경우
@@ -782,7 +863,14 @@
             
             // TYPE2: TransQeueue 사용 사용
             var bindPushFunc = _push.bind(this, pDataRow);  
-            this.transQueue.insert(pDataRow, null, bindPushFunc); 
+            this.transQueue.insert(pDataRow, null, bindPushFunc);
+            
+            // 이벤트 발생
+            if (typeof this._dataTable.onInsert === "function" ) {
+                this._dataTable.onInsert.call(this);
+            }
+            this._dataTable._event.publish("insert");
+
         };
 
         DataRowCollection.prototype.clear = function() {
@@ -824,6 +912,13 @@
                 // TYPE2: TransQeueue 사용 사용
                 var bindInsertAtFunc = _insertAt.bind(this, pDataRow, pIdx);  
                 this.transQueue.insert(pDataRow, pIdx, bindInsertAtFunc); 
+
+                // 이벤트 발생
+                if (typeof this._dataTable.onInsert === "function" ) {
+                    this._dataTable.onInsert.call(this._dataTable);
+                }
+                this._dataTable._event.publish("insert");
+
                 return true;
             }
             return false;
@@ -844,8 +939,42 @@
 
             // TYPE2: TransQeueue 사용 사용
             var bindRemoveAtFunc = _removeAt.bind(this, pIdx);  
-            return this.transQueue.delete(pIdx, null, bindRemoveAtFunc); 
+            var isSuccess  = this.transQueue.delete(pIdx, null, bindRemoveAtFunc); 
+            
+            if (isSuccess) {
+                // 이벤트 발생
+                if (typeof this._dataTable.onDelete === "function" ) {
+                    this._dataTable.onDelete.call(this._dataTable);
+                }
+                this._dataTable._event.publish("delete");            
+
+                return true;
+            } 
+
+            return false;
         };
+
+        // REVIEW : 테스트 안함
+        DataRowCollection.prototype.update = function(pOldDataRow, pNewDataRow) {
+            return this.updateAt(this.indexOf(pOldDataRow), pNewDataRow);
+        };
+
+        // REVIEW : 테스트 안함
+        DataRowCollection.prototype.updateAt = function(pIdx, pDataRow) {
+            
+            var bindUpdateAtFunc = _updateAt.bind(this, pDataRow, pIdx);
+            var isSuccess  = this.transQueue.update(pDataRow, pIdx, bindUpdateAtFunc);
+
+            if (isSuccess) {
+                // 이벤트 발생
+                if (typeof this._dataTable.onUpdate === "function" ) {
+                    this._dataTable.onUpdate.call(this._dataTable);
+                }
+                this._dataTable._event.publish("update");            
+
+                return true;
+            } 
+        };        
 
     }());
 

@@ -1,3 +1,6 @@
+/**
+ * @version 1.0.0 
+ */
 (function(G) {
     'use strict';
     var _G;     // 내부 전역

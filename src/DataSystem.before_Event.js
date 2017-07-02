@@ -1,355 +1,3 @@
-/**
- * @version 1.0.1 
- */
-
-//####################################################
-// Merge file : TransQueue.js
-/**
- * @version 1.0.0 
- */
-(function(G) {
-    'use strict';
-    var _G;     // 내부 전역
-
-    /**
-     * @class TransQueue
-     * @version 1.0.0
-     * @param {Array} pArrOriginal (*필수) 원본 배열
-     * @param {Array} pArrTarget 선택
-     * @classdesc 트랜젝션 큐
-     * @example
-     *  - 방식
-     *      + callback 방식
-     *      + pTarget 전달 방식
-     *  - 주의사항
-     *      + idx 값을 사용할때는 커밋 완료된 기점 기준으로 사용
-     *         (문장이 길어지면 중간 커밋후 진행)
-     * @property {Array} queue REVIEW : 테스트 시 주석제거후 사용
-     */
-    function TransQueue(pArrOriginal, pArrTarget) {
-
-
-        var _queue      = [];
-        var _before     = null;
-        var _original   = pArrOriginal || null;
-        var _target     = pArrTarget || null;
-        
-        // REVIEW : 테스트 시 주석제거후 사용
-        this.queue = _queue;
-        
-        if (isArray(pArrOriginal)) {
-            throw new Error('pArrOriginal 오류 : pArrOriginal=' + pArrOriginal);
-            // return null;
-        }
-
-        // REVIEW: 공통화 필요
-        function isArray(value) {
-            if (typeof Array.isArray === "function") {
-                return Array.isArray(value);
-            } else {
-                return Object.prototype.toString.call(value) === "[object Array]";
-            }
-        }
-        
-        /**
-         * @name #init
-         * @access public
-         * @summary 큐 초기화
-         * @function
-         * @memberOf TransQueue
-         * 
-         */
-        this.init = function() {
-            _queue = null;
-            _queue = [];
-            
-            // 테스트 참조 초기화
-            this.queue = null;
-            this.queue = _queue;
-            
-            console.log('init :: 큐초기화됨 ..');    
-        }
-        
-        /**
-         * @name #commit
-         * @summary 큐 초기화
-         * @access public
-         * @function
-         * @memberOf TransQueue
-         */
-        this.commit = function() {
-
-            var idx = null;
-
-            if (_target === null) {
-                this.init();    
-                return true;
-            }
-
-            for(var i = 0;  i < _queue.length; i++) {
-                
-                if ("I" in _queue[i]) {
-                    idx = _original.indexOf(_queue[i]["I"].ref);
-                    _target.splice(idx, 0, _queue[i]["I"].ref);
-                    // console.log('commit :: insert ..')    
-                }
-
-                if ("D" in _queue[i]) {
-                    idx = _queue[i]["D"].cursor_idx;
-                    _target.splice(idx, 1);
-                    // console.log('commit :: delete ..')    
-                }
-
-                if ("U" in _queue[i]) {
-                    idx = _original.indexOf(_queue[i]["U"].ref);
-                    // idx = _queue[i]["U"].cursor_idx;     // REVIEW: 문제발생시 확인
-                    _target.splice(idx, 1);
-                    _target.splice(idx, 0, _queue[i]["U"].ref);
-                    // console.log('commit :: update ..')    
-                }
-            }
-            this.init();
-            // console.log('commit :: 내부 ..');    
-            return true;
-        };
-
-        /**
-         * @name #rollback
-         * @summary 큐 롤백 (원본 복구됨)
-         * @access public
-         * @function
-         * @memberOf TransQueue
-         */
-        this.rollback = function() {
-
-            var idx = null;
-
-            try { 
-
-                for(var i = 0;  i < _queue.length; i++) {
-                        
-                    if ("I" in _queue[i]) {
-                        idx = _original.indexOf(_queue[i]["I"].ref);
-                        _original.splice(idx, 1);
-                        // console.log('rollbak :: insert -> delete ..')    
-                    }
-
-                    // TODO: if 묶을필요 테스트후
-                    if ("D" in _queue[i]) {
-                        idx = _queue[i]["D"].cursor_idx;
-                        _original.splice(idx, 0, _queue[i]["D"].clone);
-                        // console.log('rollbak :: delete -> insert ..')    
-                    }
-                    
-                    if ("U" in _queue[i]) {
-                        idx = _original.indexOf(_queue[i]["U"].ref);
-                        _original.splice(idx, 1);
-                        _original.splice(idx, 0, _queue[i]["U"].clone);
-                        // console.log('rollbak :: delete -> insert ..')    
-                    }
-                }
-                this.init();
-
-            } catch (e) { 
-                console.log('rollback 오류:' + e);
-                return false;
-            }
-            
-            return true;
-        };
-
-        /**
-         * @name #insert
-         * @summary 등록 : INSERT
-         * @access public
-         * @function
-         * @memberOf TransQueue
-         * @param {Object} pRowObject   대상 Row 객체
-         * @param {Number} pCursorIdx   [선택] 레코드 idx 없을시 null 삽입 
-         *                              (키 입력시 커밋 완료된 데이터만 가능!!)
-         * @param {Function} callback   [선택]  !Target 방식 사용시 불필요
-         */
-        this.insert = function(pRowObject, pCursorIdx, callback) {
-            
-            pCursorIdx = pCursorIdx || _original.length;
-
-            if (pCursorIdx > _original.length) {
-                throw new Error('pCursorIdx 범위 초과 오류 : pCursorIdx=' + pCursorIdx);
-                // return null;
-            }
-
-            // 1단계 (순서중요!)
-            if (_target === null) {
-                if (typeof callback === "function") {
-                    // Function.prototype.call(this);
-                    callback.call(this);
-                } else {
-                    return false;
-                }
-            } else {
-                before.splice(pCursorIdx, 0, pRowObject);
-            }
-
-            // 2단계 (순서중요!)
-            _queue.push({
-                "I": {ref: _original[pCursorIdx], clone: null, cursor_idx: pCursorIdx}
-            });
-
-            return true;
-        };
-
-        /**
-         * @name #delete
-         * @summary 삭제 : DELETE
-         * @access public
-         * @function
-         * @memberOf TransQueue
-         * @param {Number} pCursorIdx   레코드 idx 필수 (커밋 완료된 데이터만 가능!!)
-         * @param {Function} callback   [선택] !Target 방식 사용시 불필요
-         */
-        this.delete = function(pCursorIdx, callback) {
-            
-            if (!pCursorIdx) {
-                throw new Error('delete 오류 (입력없음): pCursorIdx=' + pCursorIdx);
-                // return false;
-            }
-
-            // TODO: 정수타입 검사
-            if (pCursorIdx >= _original.length) {
-                throw new Error('delete 오류 (범위초과): pCursorIdx=' + pCursorIdx);
-                // return false;
-            }
-
-            // 1단계 (순서중요!) : 백업 (참조 저장)
-            _queue.push({
-                "D":  {ref: null, clone: _original[pCursorIdx], cursor_idx: pCursorIdx}
-            });
-            
-            // 2단계 (순서중요!)
-            if (_target === null) {
-                if (typeof callback === "function") {
-                    return Function.prototype.call(this);
-                } else {
-                    return false;
-                }
-            } else {
-                _original.splice(pCursorIdx, 1);
-            }
-
-            return true;
-        };
-
-        /**
-         * @name #update
-         * @summary 수정 : UPDATE 내부적으로 (delete -> insert 처리됨)
-         * @access public
-         * @function
-         * @memberOf TransQueue
-         * @param {Object} pRowObject   대상 Row 객체
-         * @param {Number} pCursorIdx   레코드 idx 필수 (커밋 완료된 데이터만 가능!!)
-         * @param {Function} callback   [선택] !Target 방식 사용시 불필요
-         */
-        this.update = function(pRowObject, pCursorIdx, callback) {
-
-            if (!pCursorIdx) {
-                throw new Error('update 오류 (입력없음): pCursorIdx=' + pCursorIdx);
-                // return false;
-            }
-
-            if (pCursorIdx >= _original.length) {
-                throw new Error('update 오류 (범위초과): pCursorIdx=' + pCursorIdx);
-                // return false;
-            }
-
-            // 1단계 (순서중요!)  : 백업 (참조 저장)
-            _queue.push({
-                "U":  {ref: null, clone: _original[pCursorIdx], cursor_idx: pCursorIdx}
-            });
-
-            // 2단계 (순서중요!)
-            if (_target === null) {
-                if (typeof callback === "function") {
-                    Function.prototype.call(this);
-                } else {
-                    return false;
-                }
-            } else {
-                _original.splice(pCursorIdx, 1, pRowObject);
-            }
-
-            // 3단계 (순서중요!) : 참조 연결
-            _queue[_queue.length - 1]["U"].ref = _original[pCursorIdx];
-
-            return true;
-        };
-
-        /**
-         * @name #select
-         * @summary 변경대상 조회 : SELECT
-         * @access public
-         * @function
-         * @memberOf TransQueue
-         * @param {Object} pRowObject   대상 Row 객체
-         * @param {Number} pCursorIdx   레코드 idx 필수 (커밋 완료된 데이터만 가능!!)
-         * @param {Function} callback   [선택] !Target 방식 사용시 불필요
-         */
-        this.select = function() {
-            var rows = [];
-
-            if (0 >= _queue.length ) return null;
-
-            for(var i = 0;  i < _queue.length; i++) {
-                
-                if ("I" in _queue[i]) {
-                    rows.push(
-                        {
-                            cmd: "I",
-                            row: _queue[i]["I"].ref,
-                            idx: _queue[i]["I"].cursor_idx
-                        }
-                    );
-                } else if ("D" in _queue[i]) {
-                    rows.push(
-                        {
-                            cmd: "D",
-                            row: _queue[i]["D"].clone,
-                            idx: _queue[i]["D"].cursor_idx
-                        }
-                    );
-                } else if ("U" in _queue[i]) {
-                    rows.push(
-                        {
-                            cmd: "U",
-                            row: _queue[i]["U"].clone,
-                            idx: _queue[i]["U"].cursor_idx
-                        }
-                    );
-                }
-            }
-            
-            return rows;
-        };
-    }
-
-    // 배포 (RequireJS 용도)
-    if (typeof module !== 'undefined' && module.exports) {
-        module.exports      = TransQueue;
-        _G = global;    // node 
-    } else {
-        _G = G;         // web
-    }
-
-    // 전역 배포
-    _G.TransQueue   = TransQueue;
-
-}(this));
-
-
-//####################################################
-// Merge file : DataSystem.js
-/**
- * @version 0.1.0 
- */
 (function(G) {
     'use strict';    
     var _G;     // 내부 전역
@@ -405,11 +53,6 @@
         this.tables = new DataTableCollection(this);
         // this.dt = this.tables;      // Ref?
         this.dataSetName = pDataSetName;
-        this._event         = new Observer(this, this);
-        this.eventList      = ["commit", "rollback", "change"];
-        this.onCommit       = null;     // 커밋완료 후 + 성공시 : callback(ds)
-        this.onRollback     = null;     // 커밋완료 후 + 성공시 : callback(ds)
-        this.onChange       = null;     // 변경이후 : callback(ds)
     }
     (function() {
 
@@ -446,7 +89,7 @@
                 }
 
                 for (var i = 0; i < pDataSet.tables.length; i++) {
-                    dataTable = new DataTable(null, this);
+                    dataTable = new DataTable();
                     dataTable.read(pDataSet.tables[i]);
                     this.tables.add(dataTable);
                 }
@@ -512,7 +155,7 @@
                 }
 
                 for (var i = 0; i < pDataSet.tables.length; i++) {
-                    dataTable = new DataTable(null, this);
+                    dataTable = new DataTable();
                     dataTable.read(pDataSet.tables[i]);
                     this.tables.add(dataTable);
                 }
@@ -557,13 +200,6 @@
                 
                 if (!isSuccess) return false;
             }
-
-            // 이벤트 발생
-            if (typeof this.onCommit === "function" ) {
-                this.onCommit.call(this);
-            }
-            this._event.publish("commit");
-
             return isSuccess;
         };
         
@@ -577,13 +213,6 @@
                 
                 if (!isSuccess) return false;
             }
-
-            // 이벤트 발생
-            if (typeof this.onRollback === "function" ) {
-                this.onRollback.call(this);
-            }
-            this._event.publish("rollback");
-
             return isSuccess;
         };
 
@@ -624,24 +253,6 @@
             return false;
         };
 
-        // 이벤트 등록
-        DataSet.prototype.onEvent = function(pType, pFn) {
-            if (this.eventList.indexOf(pType) > -1) {
-                this._event.subscribe(pFn, pType);
-            } else {
-                throw new Error('pType 에러 발생 pType:' + pType);
-            }
-        }
-
-        // 이벤트 해제
-        DataSet.prototype.offEvent = function(pType, pFn) {
-            if (this.eventList.indexOf(pType) > -1) {
-                this._event.unsubscribe(pFn, pType);
-            } else {
-                throw new Error('pType 에러 발생 pType:' + pType);
-            }
-        }        
-
     }());
 
     /**
@@ -652,7 +263,7 @@
     function DataTableCollection(pDataSet) {
         LArray.call(this);      // ### prototype 상속 ###
 
-        this._dataSet = pDataSet;
+        var _dataSet = pDataSet;
 
         // this._items = [];
         this._SCOPE = "DataTableCollection";
@@ -675,7 +286,7 @@
             var table = null;
 
             if (typeof pObject === "string") {      
-                table = new DataTable(pObject, this._dataSet);
+                table = new DataTable(pObject);
             } else if (pObject instanceof DataTable) {
                 table = pObject;
             } else {
@@ -718,12 +329,12 @@
         // 객체의 index 값 조회
         DataTableCollection.prototype.indexOf = function(pObject) {
             
-            for (var i = 0; i < this._dataSet.tables.length; i++) {
+            for (var i = 0; i < th_dataSet.tables.length; i++) {
                 
                 if (typeof pObject ==="string") {
-                    if (this._dataSet.tables[i].tableName === pObject) return i;
+                    if (_dataSet.tables[i].tableName === pObject) return i;
                 } else if (pObject) {
-                    if (this._dataSet.tables[i] === pObject)  return i;
+                    if (_dataSet.tables[i] === pObject)  return i;
                 }
             }
             return -1; 
@@ -755,43 +366,12 @@
      * 데이터테이블
      * @param {String} pTableName 테이블명
      */
-    function DataTable(pTableName, pDataSet) {
-        
-        var _this           = this;
+    function DataTable(pTableName) {
 
-        this._dataSet       = pDataSet;
-        this.columns        = new DataColumnCollection(this);
-        this.rows           = new DataRowCollection(this);
-        this.tableName      = pTableName;
-        this._event         = new Observer(this, this);
-        this.eventList      = ["change", "insert", "update", "delete"];
-        this.onChange       = null;     // 처리후 : callback(데이터테이블)
-        this.onInsert       = null;     // 처리후 : callback(데이터테이블)
-        this.onUpdate       = null;     // 처리후 : callback(데이터테이블)
-        this.onDelete       = null;     // 처리후 : callback(데이터테이블)
-        
-        // 이벤트 관련
-        if (this._dataSet instanceof DataSet) {
-            this._event.subscribe(function() {
-                // 이벤트 발생
-                if (typeof _this._dataSet.onChange === "function" ) {
-                    pDataSet.onChange.call(this);
-                }
-                _this._dataSet._event.publish("change");
-            }, "change");
-        }
+        this.columns    = new DataColumnCollection(this);
+        this.rows       = new DataRowCollection(this);
+        this.tableName  = pTableName;
 
-        this._event.subscribe(function() {
-            _this._event.publish("change"); // 이벤트 발생
-        }, "insert");
-
-        this._event.subscribe(function() {
-            _this._event.publish("change"); // 이벤트 발생
-        }, "update");
-
-        this._event.subscribe(function() {
-            _this._event.publish("change"); // 이벤트 발생
-        }, "delete");
     }
     (function() {
 
@@ -877,7 +457,7 @@
                     throw new Error('rows와 columns 없음 오류 :');
                 }
 
-                dataTable = new DataTable(dtTableName, this._dataSet);
+                dataTable = new DataTable(dtTableName);
                 
                 // *************************
                 // 로우 데이터 가져오기
@@ -927,7 +507,7 @@
                     throw new Error('colum 배열 아님 오류 :');
                 }
 
-                dataTable = new DataTable(dtTableName, this._dataSet);
+                dataTable = new DataTable(dtTableName);
                 
                 // *************************
                 // 컬럼 스키마 가져오기
@@ -1199,12 +779,6 @@
             return this._items.splice(pIdx, 1);     // _index 삭제 
         }
 
-        // REVIW: 테스트전
-        function _updateAt(pDataRow, pIdx) {
-            _removeAt(pIdx);
-            _insertAt(pDataRow, pIdx);
-        }
-
         DataRowCollection.prototype.add = function(pDataRow) {
 
             // TYPE1: TransQeueue 사용 안할 경우
@@ -1212,14 +786,7 @@
             
             // TYPE2: TransQeueue 사용 사용
             var bindPushFunc = _push.bind(this, pDataRow);  
-            this.transQueue.insert(pDataRow, null, bindPushFunc);
-            
-            // 이벤트 발생
-            if (typeof this._dataTable.onInsert === "function" ) {
-                this._dataTable.onInsert.call(this);
-            }
-            this._dataTable._event.publish("insert");
-
+            this.transQueue.insert(pDataRow, null, bindPushFunc); 
         };
 
         DataRowCollection.prototype.clear = function() {
@@ -1261,13 +828,6 @@
                 // TYPE2: TransQeueue 사용 사용
                 var bindInsertAtFunc = _insertAt.bind(this, pDataRow, pIdx);  
                 this.transQueue.insert(pDataRow, pIdx, bindInsertAtFunc); 
-
-                // 이벤트 발생
-                if (typeof this._dataTable.onInsert === "function" ) {
-                    this._dataTable.onInsert.call(this._dataTable);
-                }
-                this._dataTable._event.publish("insert");
-
                 return true;
             }
             return false;
@@ -1288,42 +848,8 @@
 
             // TYPE2: TransQeueue 사용 사용
             var bindRemoveAtFunc = _removeAt.bind(this, pIdx);  
-            var isSuccess  = this.transQueue.delete(pIdx, null, bindRemoveAtFunc); 
-            
-            if (isSuccess) {
-                // 이벤트 발생
-                if (typeof this._dataTable.onDelete === "function" ) {
-                    this._dataTable.onDelete.call(this._dataTable);
-                }
-                this._dataTable._event.publish("delete");            
-
-                return true;
-            } 
-
-            return false;
+            return this.transQueue.delete(pIdx, null, bindRemoveAtFunc); 
         };
-
-        // REVIEW : 테스트 안함
-        DataRowCollection.prototype.update = function(pOldDataRow, pNewDataRow) {
-            return this.updateAt(this.indexOf(pOldDataRow), pNewDataRow);
-        };
-
-        // REVIEW : 테스트 안함
-        DataRowCollection.prototype.updateAt = function(pIdx, pDataRow) {
-            
-            var bindUpdateAtFunc = _updateAt.bind(this, pDataRow, pIdx);
-            var isSuccess  = this.transQueue.update(pDataRow, pIdx, bindUpdateAtFunc);
-
-            if (isSuccess) {
-                // 이벤트 발생
-                if (typeof this._dataTable.onUpdate === "function" ) {
-                    this._dataTable.onUpdate.call(this._dataTable);
-                }
-                this._dataTable._event.publish("update");            
-
-                return true;
-            } 
-        };        
 
     }());
 

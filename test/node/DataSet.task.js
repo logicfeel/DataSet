@@ -28,7 +28,7 @@ var DataRow     = DS.DataRow;
     var ds = new DataSet("dsTest");
 
     // 1방식 : 생성 후 등록 방식 : 테이블
-    var dt1 = new DataTable("head"); 
+    var dt1 = new DataTable("head", ds); 
     ds.tables.add(dt1);
 
     // 2방식 : 직접 생성 방식 : 테이블

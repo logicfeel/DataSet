@@ -28,7 +28,7 @@ var DataRow     = DS.DataRow;
     var ds = new DataSet("dsTest");
 
     // 1방식 : 생성 후 등록 방식 : 테이블
-    var dt1 = new DataTable("head"); 
+    var dt1 = new DataTable("head", ds); 
     ds.tables.add(dt1);
 
     // 2방식 : 직접 생성 방식 : 테이블
@@ -46,13 +46,13 @@ var DataRow     = DS.DataRow;
     ds.tables["body"].columns.add("pp1_name");
     ds.tables[1].columns.add("pp2_name");
 
-    console.log('### ds.table[0].columns 검사 ###');
-    console.log(ds.tables[0].columns);
-    console.log('##############################');
+    // console.log('### ds.table[0].columns 검사 ###');
+    // console.log(ds.tables[0].columns);
+    // console.log('##############################');
 
-    console.log('### ds.table["body"].columns 검사 ###');
-    console.log(ds.tables['body'].columns);
-    console.log('##############################');
+    // console.log('### ds.table["body"].columns 검사 ###');
+    // console.log(ds.tables['body'].columns);
+    // console.log('##############################');
 
     var dr = null;
 
@@ -126,10 +126,10 @@ var DataRow     = DS.DataRow;
     ds.rejectChanges();       // rollback   <== 테스트시 토글 하면서 테스트
 
     // *************************************
-    console.log('### ds rows 확인 ###');
-    var row1 = ds.tables[0].rows;
-    console.log(ds.tables[0].rows);
-    console.log('##############################');
+    // console.log('### ds rows 확인 ###');
+    // var row1 = ds.tables[0].rows;
+    // console.log(ds.tables[0].rows);
+    // console.log('##############################');
     
     // ds.acceptChanges();     // commit       <== 테스트시 토글 하면서 테스트
     
