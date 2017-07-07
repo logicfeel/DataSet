@@ -1,5 +1,5 @@
 /**
- * @version 1.0.0 
+ * @version 1.0.1 
  */
 (function(G) {
     'use strict';
@@ -203,7 +203,7 @@
          */
         this.delete = function(pCursorIdx, callback) {
             
-            if (!pCursorIdx) {
+            if (typeof pCursorIdx === "undefined" || pCursorIdx < 0) {
                 throw new Error('delete 오류 (입력없음): pCursorIdx=' + pCursorIdx);
                 // return false;
             }
@@ -222,7 +222,8 @@
             // 2단계 (순서중요!)
             if (_target === null) {
                 if (typeof callback === "function") {
-                    return Function.prototype.call(this);
+                    // return Function.prototype.call(this);
+                    return  callback.call(this);
                 } else {
                     return false;
                 }
@@ -263,7 +264,8 @@
             // 2단계 (순서중요!)
             if (_target === null) {
                 if (typeof callback === "function") {
-                    Function.prototype.call(this);
+                    // Function.prototype.call(this);
+                    return  callback.call(this);
                 } else {
                     return false;
                 }

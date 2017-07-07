@@ -1,11 +1,12 @@
 /**
- * @version 1.0.1 
+ * @version 1.0.2 
+ * - 테이블 삭제 오류 처리
  */
 
 //####################################################
 // Merge file : TransQueue.js
 /**
- * @version 1.0.0 
+ * @version 1.0.1 
  */
 (function(G) {
     'use strict';
@@ -209,7 +210,7 @@
          */
         this.delete = function(pCursorIdx, callback) {
             
-            if (!pCursorIdx) {
+            if (typeof pCursorIdx === "undefined" || pCursorIdx < 0) {
                 throw new Error('delete 오류 (입력없음): pCursorIdx=' + pCursorIdx);
                 // return false;
             }
@@ -228,7 +229,8 @@
             // 2단계 (순서중요!)
             if (_target === null) {
                 if (typeof callback === "function") {
-                    return Function.prototype.call(this);
+                    // return Function.prototype.call(this);
+                    return  callback.call(this);
                 } else {
                     return false;
                 }
@@ -269,7 +271,8 @@
             // 2단계 (순서중요!)
             if (_target === null) {
                 if (typeof callback === "function") {
-                    Function.prototype.call(this);
+                    // Function.prototype.call(this);
+                    return  callback.call(this);
                 } else {
                     return false;
                 }
@@ -344,11 +347,10 @@
 
 }(this));
 
-
 //####################################################
 // Merge file : DataSystem.js
 /**
- * @version 0.1.0 
+ * @version 0.1.1 
  */
 (function(G) {
     'use strict';    
@@ -1288,7 +1290,7 @@
 
             // TYPE2: TransQeueue 사용 사용
             var bindRemoveAtFunc = _removeAt.bind(this, pIdx);  
-            var isSuccess  = this.transQueue.delete(pIdx, null, bindRemoveAtFunc); 
+            var isSuccess  = this.transQueue.delete(pIdx, bindRemoveAtFunc); 
             
             if (isSuccess) {
                 // 이벤트 발생

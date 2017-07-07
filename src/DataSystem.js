@@ -1,5 +1,5 @@
 /**
- * @version 0.1.0 
+ * @version 0.1.1 
  */
 (function(G) {
     'use strict';    
@@ -939,7 +939,7 @@
 
             // TYPE2: TransQeueue 사용 사용
             var bindRemoveAtFunc = _removeAt.bind(this, pIdx);  
-            var isSuccess  = this.transQueue.delete(pIdx, null, bindRemoveAtFunc); 
+            var isSuccess  = this.transQueue.delete(pIdx, bindRemoveAtFunc); 
             
             if (isSuccess) {
                 // 이벤트 발생

@@ -115,6 +115,8 @@ var DataRow     = DS.DataRow;
     dr["p3_name"] = {abc:1};
     dt2.rows.add(dr);
 
+    ds.tables[0].rows.removeAt(1);
+
     /**
      * rollback 호출시 
      *  - '10번내용 - 중간수정' : 삭제됨
