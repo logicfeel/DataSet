@@ -760,9 +760,12 @@
         };
 
         DataColumnCollection.prototype.removeAt = function(pIdx) {
+            /* PATH : 1.0.2
             this.splice(pIdx, 1);                   // 내부 참조 삭제
             delete this[pIdx].columnName;           // 내부 이름 참조 삭제
             return this._items.splice(pIdx, 1);     // _index 삭제
+            */
+            return this.splice(pIdx, 1);
         };
 
     }());
@@ -811,7 +814,9 @@
 
     /**
      *  데이터 로우 컬렉션 Row
+     *  LArray 에서 배열 조정함
      * @param {DataTable} pDataTable 데이터테이블
+     * 
      */
     function DataRowCollection(pDataTable) {
         LArray.call(this);  // ### prototype 상속 ###
@@ -822,7 +827,7 @@
         // this._items = [];  
         this._SCOPE = "DataRowCollection";
 
-        this.transQueue = new TransQueue(this, null);
+        this.transQueue = new TransQueue(this, null); // PATH-1.0.2: _items 을 원본으로 지정
         
         this.setPropCallback("count", function() {return this._items.length});
         
@@ -836,24 +841,34 @@
         // ##### 메소드 ####
 
         function _push(pDataRow) {
-            this.push(pDataRow);
-            this._items.push(pDataRow);        
+            
+            var idx = -1;
+
+            this.push(pDataRow);               // PATH-1.0.2: 복제본 저장
+            idx = this.indexOf(pDataRow);
+            this[idx] = pDataRow.copyTo();
         }
 
         function _insertAt(pDataRow, pIdx) {
-            this.splice(pIdx, 0, pDataRow);
-            this._items.splice(pIdx, 0, pDataRow);
+            
+            var idx = -1;
+            
+            this.splice(pIdx, 0, pDataRow);    // PATH-1.0.2: 복제본 저장
+            idx = this.indexOf(pDataRow);
+            this[idx] = pDataRow.copyTo();
+            
+            // this._items.splice(pIdx, 0, pDataRow);
         }    
         
         function _removeAt(pIdx) {
-            this.splice(pIdx, 1);                   // 내부 참조 삭제
-            return this._items.splice(pIdx, 1);     // _index 삭제 
+            // return this._items.splice(pIdx, 1);     // _index 삭제 
+            return this.splice(pIdx, 1);                   // 내부 참조 삭제
         }
 
         // REVIW: 테스트전
         function _updateAt(pDataRow, pIdx) {
-            _removeAt(pIdx);
-            _insertAt(pDataRow, pIdx);
+            _removeAt.call(this, pIdx);                 // PATH-1.0.2: call 추가함
+            _insertAt.call(this, pDataRow, pIdx);       // PATH-1.0.2: call 추가함
         }
 
         DataRowCollection.prototype.add = function(pDataRow) {
@@ -863,6 +878,7 @@
             
             // TYPE2: TransQeueue 사용 사용
             var bindPushFunc = _push.bind(this, pDataRow);  
+
             this.transQueue.insert(pDataRow, null, bindPushFunc);
             
             // 이벤트 발생
@@ -887,7 +903,19 @@
         DataRowCollection.prototype.find = function() {};
 
         // TODO: 필요시 구현해도 됨
-        DataRowCollection.prototype.copyTo = function() {};
+        DataRowCollection.prototype.copyTo = function(pIdx) {
+            
+            // var rows   = new DataRowCollection(this._dataTable);
+            // var dataRow = null;
+
+            // if (typeof pIdx === "number") {
+            //     dataRow = new DataRow(this._dataTable);
+            // }else {
+            // }
+
+            // dataRow = new DataRow(this._dataTable);
+            // this._dataTable.newrow()
+        };
         
         // TODO: 뭐랑 비교하는 정 확인 필요
         DataRowCollection.prototype.equals = function(pObject) {
@@ -896,8 +924,11 @@
         
         DataRowCollection.prototype.indexOf = function(pDataRow) {
 
-            for (var i = 0; i < this.length; i++) {
-                if (this[i] === pDataRow) return i;
+            for (var i = 0; i < this._items.length; i++) {  // PATH-1.0.2: 상위 items 비교함
+                if (this._items[i] === pDataRow) return i; 
+            }
+            for (var i = 0; i < this.length; i++) {         // PATH-1.0.2: 자신 items 비교함
+                if (this[i] === pDataRow) return i; 
             }
             return -1;
         };
@@ -911,7 +942,7 @@
 
                 // TYPE2: TransQeueue 사용 사용
                 var bindInsertAtFunc = _insertAt.bind(this, pDataRow, pIdx);  
-                this.transQueue.insert(pDataRow, pIdx, bindInsertAtFunc); 
+                this.transQueue.insert(pDataRow, pIdx, bindInsertAtFunc);
 
                 // 이벤트 발생
                 if (typeof this._dataTable.onInsert === "function" ) {
@@ -956,14 +987,14 @@
 
         // REVIEW : 테스트 안함
         DataRowCollection.prototype.update = function(pOldDataRow, pNewDataRow) {
-            return this.updateAt(this.indexOf(pOldDataRow), pNewDataRow);
+            return this.updateAt(pNewDataRow, this.indexOf(pOldDataRow));
         };
 
         // REVIEW : 테스트 안함
-        DataRowCollection.prototype.updateAt = function(pIdx, pDataRow) {
+        DataRowCollection.prototype.updateAt = function(pNewDataRow, pIdx) {
             
-            var bindUpdateAtFunc = _updateAt.bind(this, pDataRow, pIdx);
-            var isSuccess  = this.transQueue.update(pDataRow, pIdx, bindUpdateAtFunc);
+            var bindUpdateAtFunc = _updateAt.bind(this, pNewDataRow, pIdx);
+            var isSuccess  = this.transQueue.update(pNewDataRow, pIdx, bindUpdateAtFunc);
 
             if (isSuccess) {
                 // 이벤트 발생
@@ -989,8 +1020,8 @@
 
         // ! REVIEW 주의 TArray _items 오버라이딩함
         this._dataTable = pDataTable;    // 소유한 데이터테이블
-        this._items = [];
-        this._SCOPE = "DataRow";
+        // this._items = [];
+        this._SCOPE     = "DataRow";
 
         if (pDataTable instanceof DataTable) {
             for (var i = 0; i < this._dataTable.columns.length; i++) {
@@ -1009,6 +1040,20 @@
         DataRow.prototype.constructor = DataRow;
         DataRow.prototype.parent = LArray.prototype;
 
+        // PATH-1.0.2: 객체 깊은 복제
+        function _clone(obj) {
+            if (obj === null || typeof(obj) !== 'object') return obj;
+
+            var copy = obj.constructor();
+
+            for (var attr in obj) {
+                if (obj.hasOwnProperty(attr)) {
+                    copy[attr] = _clone(obj[attr]);
+                }
+            }
+            return copy;
+        }
+
         // ##### 메소드 ####
 
         DataRow.prototype.delete = function() {
@@ -1016,6 +1061,27 @@
             var idx = this._dataTable.rows.indexOf(this);
             
             this._dataTable.rows.removeAt(idx);
+        };
+        
+        // PATH-1.0.2: 복제본 저장
+        DataRow.prototype.copyTo = function() {
+            
+            var copy  = new DataRow(this._dataTable);
+            
+            // REVIEW 등록후 수정하는 경우가 있어서
+
+            for (var i = 0; i < this.length; i++) {
+                copy[i] = _clone(this[i]);
+            }
+            return copy;
+        };
+
+        DataRow.prototype.setModified = function() {
+            
+            var idx = this._dataTable.rows.indexOf(this);
+            var oldDataRow = this._dataTable.rows._items[idx];
+            // (기존로우, 신규로우)
+            this._dataTable.rows.update(oldDataRow, this);
         };
 
         // 변경 적용 관련 (불필요함:DataTable에서 row 관리)

@@ -31,18 +31,9 @@
         // REVIEW : 테스트 시 주석제거후 사용
         this.queue = _queue;
         
-        if (isArray(pArrOriginal)) {
+        if (!(pArrOriginal instanceof Array)) {
             throw new Error('pArrOriginal 오류 : pArrOriginal=' + pArrOriginal);
             // return null;
-        }
-
-        // REVIEW: 공통화 필요
-        function isArray(value) {
-            if (typeof Array.isArray === "function") {
-                return Array.isArray(value);
-            } else {
-                return Object.prototype.toString.call(value) === "[object Array]";
-            }
         }
         
         /**
@@ -120,25 +111,27 @@
 
             try { 
 
-                for(var i = 0;  i < _queue.length; i++) {
+                // !! 주의 : 롤벡은 큐를 거꾸로 순회해야 함
+                for(var i = _queue.length - 1;  i >= 0; i--) {
                         
                     if ("I" in _queue[i]) {
                         idx = _original.indexOf(_queue[i]["I"].ref);
-                        _original.splice(idx, 1);
+                        _original.splice(idx, 1);                       // 등록한것 제거
                         // console.log('rollbak :: insert -> delete ..')    
                     }
 
                     // TODO: if 묶을필요 테스트후
                     if ("D" in _queue[i]) {
                         idx = _queue[i]["D"].cursor_idx;
-                        _original.splice(idx, 0, _queue[i]["D"].clone);
+                        _original.splice(idx, 0, _queue[i]["D"].clone); // 삭제한것 복귀
                         // console.log('rollbak :: delete -> insert ..')    
                     }
                     
                     if ("U" in _queue[i]) {
+                        // !! 주의 롤백시 순서 바꿔야 함
                         idx = _original.indexOf(_queue[i]["U"].ref);
-                        _original.splice(idx, 1);
-                        _original.splice(idx, 0, _queue[i]["U"].clone);
+                        _original.splice(idx, 1);                       // 수정한것 삭제
+                        _original.splice(idx, 0, _queue[i]["U"].clone); // 삭제한것 복귀
                         // console.log('rollbak :: delete -> insert ..')    
                     }
                 }
@@ -169,10 +162,9 @@
 
             if (pCursorIdx > _original.length) {
                 throw new Error('pCursorIdx 범위 초과 오류 : pCursorIdx=' + pCursorIdx);
-                // return null;
             }
 
-            // 1단계 (순서중요!)
+            // 1단계 : (순서중요!)
             if (_target === null) {
                 if (typeof callback === "function") {
                     // Function.prototype.call(this);
@@ -184,9 +176,9 @@
                 before.splice(pCursorIdx, 0, pRowObject);
             }
 
-            // 2단계 (순서중요!)
+            // 2단계 : (순서중요!)
             _queue.push({
-                "I": {ref: _original[pCursorIdx], clone: null, cursor_idx: pCursorIdx}
+                "I": {ref: _original._items[pCursorIdx], clone: null, cursor_idx: pCursorIdx}
             });
 
             return true;
@@ -205,13 +197,11 @@
             
             if (typeof pCursorIdx === "undefined" || pCursorIdx < 0) {
                 throw new Error('delete 오류 (입력없음): pCursorIdx=' + pCursorIdx);
-                // return false;
             }
 
             // TODO: 정수타입 검사
             if (pCursorIdx >= _original.length) {
                 throw new Error('delete 오류 (범위초과): pCursorIdx=' + pCursorIdx);
-                // return false;
             }
 
             // 1단계 (순서중요!) : 백업 (참조 저장)
@@ -244,21 +234,20 @@
          * @param {Number} pCursorIdx   레코드 idx 필수 (커밋 완료된 데이터만 가능!!)
          * @param {Function} callback   [선택] !Target 방식 사용시 불필요
          */
-        this.update = function(pRowObject, pCursorIdx, callback) {
+        this.update = function(pNewDataRow, pCursorIdx, callback) {
 
-            if (!pCursorIdx) {
+            if (typeof pCursorIdx === "undefined" || pCursorIdx < 0) {
                 throw new Error('update 오류 (입력없음): pCursorIdx=' + pCursorIdx);
-                // return false;
             }
 
             if (pCursorIdx >= _original.length) {
                 throw new Error('update 오류 (범위초과): pCursorIdx=' + pCursorIdx);
-                // return false;
             }
 
             // 1단계 (순서중요!)  : 백업 (참조 저장)
             _queue.push({
-                "U":  {ref: null, clone: _original[pCursorIdx], cursor_idx: pCursorIdx}
+                // "U":  {ref: null, clone: _original[pCursorIdx], cursor_idx: pCursorIdx}
+                "U":  {ref: _original[pCursorIdx], clone: _original._items[pCursorIdx], cursor_idx: pCursorIdx}
             });
 
             // 2단계 (순서중요!)
@@ -315,10 +304,17 @@
                 } else if ("U" in _queue[i]) {
                     rows.push(
                         {
-                            cmd: "U",
+                            cmd: "D",
                             row: _queue[i]["U"].clone,
                             idx: _queue[i]["U"].cursor_idx
                         }
+                    );
+                    rows.push(                        
+                        {
+                            cmd: "I",
+                            row: _queue[i]["U"].ref,
+                            idx: _queue[i]["U"].cursor_idx
+                        }                        
                     );
                 }
             }

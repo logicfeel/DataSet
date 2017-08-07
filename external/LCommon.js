@@ -1,5 +1,6 @@
 /**
- * @version 1.0.1 
+ * @version 1.0.2
+ *  - splice / add 오버라이딩함 
  */
 
 //####################################################
@@ -91,7 +92,9 @@
     // LArray.prototype._SCOPE = "LArray";
     
     LArray.prototype._init = function() {
-        LArray.prototype._items = [];
+        // PATH : 1.0.2
+        // LArray.prototype._items = [];
+        this._items = [];
     };
     
     LArray.prototype._setPropertie = function(pIdx) {
@@ -114,9 +117,15 @@
         
         if (typeof pGetCallback === "function") {
             obj.get = pGetCallback;
+        } else {    // 겟터 기본값 설정  :: PATH
+            obj.get = function(){return null};
         }
+
         if (typeof pSetCallback === "function") {
             obj.set = pSetCallback;
+        
+        } else {    // 셋터 기본값 설정  :: PATH
+            obj.set = function(){};
         }
 
         Object.defineProperty(this, pPropName, obj);
@@ -133,7 +142,7 @@
         var index   = -1;
         
         this.push(pValue);
-        this._items.push(pValue);
+        // this._items.push(pValue);
 
         index = (this.length === 1) ? 0 : this.length  - 1;
 
@@ -150,8 +159,9 @@
         var idx = this.indexOfAttr(pAttrName);
 
         delete this[pAttrName];                 // 내부 이름 참조 삭제
-        this.splice(idx, 1);                    // 내부 참조 삭제
-        return this._items.splice(idx, 1);      // _items 삭제
+        return this.splice(idx, 1);                    // 내부 참조 삭제
+        // PATH 1.0.2
+        // return this._items.splice(idx, 1);      // _items 삭제
     };
 
     LArray.prototype.indexOfAttr = function(pAttrName) {
@@ -173,6 +183,25 @@
 
         return null;
     };
+
+    // Array 오버라이딩 :: PATH 
+    LArray.prototype.splice = function() {
+
+        var params = Array.prototype.slice.call(arguments);
+        
+        Array.prototype.splice.apply(this._items, params)
+        return Array.prototype.splice.apply(this, params);
+    };
+
+    // Array 오버라이딩 :: PATH 
+    LArray.prototype.push = function() {
+
+        var params = Array.prototype.slice.call(arguments);
+        
+        Array.prototype.push.apply(this._items, params);
+        return Array.prototype.push.apply(this, params);
+    };
+
 
     /**
      * 배포
