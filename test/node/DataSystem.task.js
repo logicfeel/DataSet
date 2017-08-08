@@ -8,6 +8,28 @@ var DataTable   = DS.DataTable;
 var DataColumn  = DS.DataColumn;
 var DataRow     = DS.DataRow;
 
+// ###########################################
+{
+    /**
+     * 검사 함수
+     * 호출시 :  dataTableView( ds.tables[0] )
+     */
+    function dataTableView(dt) {
+        
+        console.log('***********************************************');
+
+        function getChange() {
+            return dt.getChanges() ? dt.getChanges().changes : 'X';
+        }        
+            return {
+            "1-rows" : dt.rows,
+            "2-items" : dt.rows._items,
+            "3-queue" : dt.rows.transQueue.queue,
+            "4-changes" : getChange()
+        }
+    }
+}
+
 // 기본 함수 로딩 테스트
 {
     console.log('### 전체 모듈 로딩 테스트 ####');

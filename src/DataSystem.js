@@ -37,14 +37,14 @@
      * @example
      * ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
      * ###############################################################
-     * DataSet      Tcollection             Rcollection     DataRow       
+     * DataSet      T-collection            R-collection    DataRow       
      * ----------------------------------------------------------------
      * DataSet      .tables  [0]            .rows[0]        .[0]
      * DataSet      .tables  ["tName"]                      .["cName"]
      *              .tables.count
      *                                      .rows.count
      * ================================================================ 
-     * DataSet      Tcollection             Ccollection
+     * DataSet      T-collection            C-collection
      * ----------------------------------------------------------------
      * DataSet      .tables  [0]            .columns[0]
      * DataSet                              .columns["cName"]
@@ -304,12 +304,7 @@
         LArray.call(this);      // ### prototype 상속 ###
 
         this._dataSet = pDataSet;
-
-        // this._items = [];
-        this._SCOPE = "DataTableCollection";
-
         this.setPropCallback("count", function() {return this._items.length});
-
     }
     (function() {
         // ### prototype 상속 ###
@@ -454,7 +449,6 @@
             var rowWidth = -1;
             
             // TODO: 이중배열 여부 검사
-
             for (var i = 0; i < pRow.length; i++) {
                 
                 // 첫번째 row 넢이 
@@ -462,15 +456,11 @@
                     rowWidth = pRow[i].length;
 
                     // 넢이가 없는 경우
-                    if (0 >= rowWidth) {
-                        return false;
-                    }
+                    if (0 >= rowWidth) return false;
                 } else {
 
                     // 넚이가 다른 경우
-                    if (rowWidth !== pRow[i].length) {
-                        return false;
-                    }
+                    if (rowWidth !== pRow[i].length) return false;
                 }
             }
             return true;
@@ -522,7 +512,7 @@
                     throw new Error('rows 이중배열 아님 오류 :');
                 }
                 if (dtRows && !_equalRowWidth(dtRows)) {
-                    throw new Error('row들의 넚이가 다름 오류 :');
+                    throw new Error('rows의 item 갯수가 다름 오류 :');
                 }
                 if (!dtRows && !dtColumns) {
                     throw new Error('rows와 columns 없음 오류 :');
@@ -677,12 +667,7 @@
         LArray.call(this);  // ### prototype 상속 ###
 
         this._dataTable = pDataTable;
-
-        // this._items = [];
-        this._SCOPE = "DataColumnCollection";
-
         this.setPropCallback("count", function() {return this._items.length});
-
     }
     (function() {   
         // ### prototype 상속 ###
@@ -822,15 +807,8 @@
         LArray.call(this);  // ### prototype 상속 ###
 
         this._dataTable = pDataTable;   // var _dataTable = pDataTable; <== this 로 변경함
-
-        // REVIEW: 이슈 있음
-        // this._items = [];  
-        this._SCOPE = "DataRowCollection";
-
         this.transQueue = new TransQueue(this, null); // PATH-1.0.2: _items 을 원본으로 지정
-        
         this.setPropCallback("count", function() {return this._items.length});
-        
     }
     (function() {   
         // ### prototype 상속 ###
@@ -985,12 +963,12 @@
             return false;
         };
 
-        // REVIEW : 테스트 안함
+        // 로우 수정사항 갱신
         DataRowCollection.prototype.update = function(pOldDataRow, pNewDataRow) {
             return this.updateAt(pNewDataRow, this.indexOf(pOldDataRow));
         };
 
-        // REVIEW : 테스트 안함
+        //  로우 수정사항 갱신(idx)
         DataRowCollection.prototype.updateAt = function(pNewDataRow, pIdx) {
             
             var bindUpdateAtFunc = _updateAt.bind(this, pNewDataRow, pIdx);
@@ -1011,6 +989,7 @@
 
     /**
      * 데이터로우
+     * 주의!! REVIEW: TArray _items 오버라이딩함
      * @param {DataTable} pDataTable 데이터테이블
      */
     function DataRow(pDataTable) {
@@ -1018,10 +997,7 @@
         
         var columnName = "";
 
-        // ! REVIEW 주의 TArray _items 오버라이딩함
         this._dataTable = pDataTable;    // 소유한 데이터테이블
-        // this._items = [];
-        this._SCOPE     = "DataRow";
 
         if (pDataTable instanceof DataTable) {
             for (var i = 0; i < this._dataTable.columns.length; i++) {
@@ -1032,7 +1008,6 @@
         }
 
         this.setPropCallback("count", function() {return this._items.length});
-
     }
     (function() {
         // ### prototype 상속 ###

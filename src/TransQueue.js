@@ -11,6 +11,9 @@
      * @param {Array} pArrOriginal (*필수) 원본 배열
      * @param {Array} pArrTarget 선택
      * @classdesc 트랜젝션 큐
+     * @summary 
+     *  종속성 : LArray
+     * 
      * @example
      *  - 방식
      *      + callback 방식
@@ -24,16 +27,14 @@
 
 
         var _queue      = [];
-        var _before     = null;
-        var _original   = pArrOriginal || null;
-        var _target     = pArrTarget || null;
+        var _original   = pArrOriginal  || null;
+        var _target     = pArrTarget    || null;    // 적용대상이 다른 경우
         
-        // REVIEW : 테스트 시 주석제거후 사용
+        // REVIEW : 테스트시 주석제거 후 사용
         this.queue = _queue;
         
         if (!(pArrOriginal instanceof Array)) {
             throw new Error('pArrOriginal 오류 : pArrOriginal=' + pArrOriginal);
-            // return null;
         }
         
         /**
@@ -70,31 +71,38 @@
                 this.init();    
                 return true;
             }
+            
+            try { 
+                for(var i = 0;  i < _queue.length; i++) {
+                    
+                    if ("I" in _queue[i]) {
+                        idx = _original.indexOf(_queue[i]["I"].ref);
+                        _target.splice(idx, 0, _queue[i]["I"].ref);
+                        // console.log('commit :: insert ..')    
+                    }
 
-            for(var i = 0;  i < _queue.length; i++) {
-                
-                if ("I" in _queue[i]) {
-                    idx = _original.indexOf(_queue[i]["I"].ref);
-                    _target.splice(idx, 0, _queue[i]["I"].ref);
-                    // console.log('commit :: insert ..')    
-                }
+                    if ("D" in _queue[i]) {
+                        idx = _queue[i]["D"].cursor_idx;
+                        _target.splice(idx, 1);
+                        // console.log('commit :: delete ..')    
+                    }
 
-                if ("D" in _queue[i]) {
-                    idx = _queue[i]["D"].cursor_idx;
-                    _target.splice(idx, 1);
-                    // console.log('commit :: delete ..')    
+                    if ("U" in _queue[i]) {
+                        idx = _original.indexOf(_queue[i]["U"].ref);
+                        // idx = _queue[i]["U"].cursor_idx;     // REVIEW: 문제발생시 확인
+                        _target.splice(idx, 1);
+                        _target.splice(idx, 0, _queue[i]["U"].ref);
+                        // console.log('commit :: update ..')    
+                    }
                 }
+                this.init();
+                // console.log('commit :: 내부 ..');    
 
-                if ("U" in _queue[i]) {
-                    idx = _original.indexOf(_queue[i]["U"].ref);
-                    // idx = _queue[i]["U"].cursor_idx;     // REVIEW: 문제발생시 확인
-                    _target.splice(idx, 1);
-                    _target.splice(idx, 0, _queue[i]["U"].ref);
-                    // console.log('commit :: update ..')    
-                }
+            } catch (e) { 
+                console.log('commit 오류:' + e);
+                return false;
             }
-            this.init();
-            // console.log('commit :: 내부 ..');    
+                
             return true;
         };
 
@@ -117,14 +125,11 @@
                     if ("I" in _queue[i]) {
                         idx = _original.indexOf(_queue[i]["I"].ref);
                         _original.splice(idx, 1);                       // 등록한것 제거
-                        // console.log('rollbak :: insert -> delete ..')    
                     }
 
-                    // TODO: if 묶을필요 테스트후
                     if ("D" in _queue[i]) {
                         idx = _queue[i]["D"].cursor_idx;
                         _original.splice(idx, 0, _queue[i]["D"].clone); // 삭제한것 복귀
-                        // console.log('rollbak :: delete -> insert ..')    
                     }
                     
                     if ("U" in _queue[i]) {
@@ -132,7 +137,6 @@
                         idx = _original.indexOf(_queue[i]["U"].ref);
                         _original.splice(idx, 1);                       // 수정한것 삭제
                         _original.splice(idx, 0, _queue[i]["U"].clone); // 삭제한것 복귀
-                        // console.log('rollbak :: delete -> insert ..')    
                     }
                 }
                 this.init();
@@ -173,7 +177,7 @@
                     return false;
                 }
             } else {
-                before.splice(pCursorIdx, 0, pRowObject);
+                _original.splice(pCursorIdx, 0, pRowObject);
             }
 
             // 2단계 : (순서중요!)
@@ -247,14 +251,14 @@
             // 1단계 (순서중요!)  : 백업 (참조 저장)
             _queue.push({
                 // "U":  {ref: null, clone: _original[pCursorIdx], cursor_idx: pCursorIdx}
-                "U":  {ref: _original[pCursorIdx], clone: _original._items[pCursorIdx], cursor_idx: pCursorIdx}
+                "U":  {ref: pNewDataRow, clone: _original._items[pCursorIdx], cursor_idx: pCursorIdx}
             });
 
             // 2단계 (순서중요!)
             if (_target === null) {
                 if (typeof callback === "function") {
                     // Function.prototype.call(this);
-                    return  callback.call(this);
+                    return callback.call(this);
                 } else {
                     return false;
                 }
@@ -263,7 +267,8 @@
             }
 
             // 3단계 (순서중요!) : 참조 연결
-            _queue[_queue.length - 1]["U"].ref = _original[pCursorIdx];
+            // REVIEW: 사용 시점이 언제인지 확인 필요
+            // _queue[_queue.length - 1]["U"].ref = _original[pCursorIdx];
 
             return true;
         };
