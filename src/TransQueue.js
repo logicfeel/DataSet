@@ -306,7 +306,7 @@
                             idx: _queue[i]["D"].cursor_idx
                         }
                     );
-                } else if ("U" in _queue[i]) {
+                } else if ("U" in _queue[i]) {      // <= TODO: U 으로 묶어야함
                     rows.push(
                         {
                             cmd: "D",

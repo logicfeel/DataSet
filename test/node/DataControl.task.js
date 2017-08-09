@@ -46,7 +46,7 @@ var DataRow     = DS.DataRow;
     var dr1_1    = null;
     var dr1_2    = null;
     var dr1_3    = null;
-    var dr2     = null;
+    var dr2      = null;
 
     dr1_1 = dt.newRow();
     dr1_1["p1_name"] = '1번';

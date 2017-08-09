@@ -233,11 +233,10 @@
     // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     // 옵서버 패턴 
     // @종속성 : 
-    function Observer(pThis, pOnwer) {
+    function Observer(pThis) {
         
         this.isDebug = true;
         this._this = pThis;
-        this._onwer = pOnwer;
         this.subscribers = {
             any: []     // 전역 구독자
         };
@@ -271,10 +270,13 @@
 
         // 구독 함수 호출
         Observer.prototype.publish = function(pType) {
+
+            var args = Array.prototype.slice.call(arguments, 1);    // pType 이후부터 배열로 저장
+
             pType = pType || "any";
             if (pType in this.subscribers) {
                 for (var i = 0; i < this.subscribers[pType].length; i++) {
-                    this.subscribers[pType][i].call(this._this, this._onwer);
+                    this.subscribers[pType][i].apply(this._this, args);
                 }
             }
             
@@ -285,6 +287,56 @@
         };
     }());
 
+    function LEvent(pThis) {
+        Observer.call(this, pThis);      // ### prototype 상속 ###
+
+        this.isDebug = false;
+        this.eventList = [];
+    }
+    (function() {
+        // ### prototype 상속 ###
+        LEvent.prototype               = Object.create(Observer.prototype); // Array 상속
+        LEvent.prototype.constructor   = LEvent;
+        LEvent.prototype.parent        = Observer.prototype;
+
+        // ### 메소드 ###
+
+        // 이벤트 발생
+        LEvent.prototype.event = function(pType) {
+            
+            var args = Array.prototype.slice.call(arguments, 1);    // pType 이후부터 배열로 저장
+            var obj = null;         // 내부 e 역활 정의
+
+            args.splice(obj, 0);    // 내부 전달값 맨 앞에 삽입
+
+            this.publish.apply(this, pType, args);
+
+        };
+
+        // 이벤트 매핑
+        // TODO: 필요 여부 확인후 구현 또는 제거
+        LEvent.prototype.onEvent = function(pType) {
+        };        
+
+        // 이벤트 등록
+        LEvent.prototype.addEvent = function(pType, pFn) {
+            if (this.eventList.indexOf(pType) > -1) {
+                this.subscribe(pFn, pType);
+            } else {
+                throw new Error('pType 에러 발생 pType:' + pType);
+            }
+        };
+
+        // 이벤트 해제
+        LEvent.prototype.removeEvent = function(pType, pFn) {
+            if (this.eventList.indexOf(pType) > -1) {
+                this.unsubscribe(pFn, pType);
+            } else {
+                throw new Error('pType 에러 발생 pType:' + pType);
+            }
+        };
+
+    }());    
 
     /**
      * 배포
