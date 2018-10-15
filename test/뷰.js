@@ -7,7 +7,7 @@
     var ds;
 
     // 뷰 테이블 설정 : 이름도 설정 경우에 따라서
-    ds.tables[0].view = [
+    ds.tables[0].view["RegForm"] = [
         {   
             view : "addr",
             attr: {f_type: "A_type"},
